@@ -25,12 +25,14 @@ static struct projectile *shrapnel(struct projectile *parent);
 
 struct MYCUSTOMVERTEX
 {
-	float x, y, z, rhw; // The transformed position for the vertex.
+	float x, y, z; // The transformed position for the vertex.
     float r, g, b, a; // The vertex colour.
 };
 
 //
-
+#ifdef WIN32
+void InitDXStuff(void);
+#endif
 void hsv_to_rgb(double hue, double saturation, double value, double *red, double *green, double *blue);
 void DrawRectangle(int x, int y, int w, int h, float* dwColour);
 
