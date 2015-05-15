@@ -10,10 +10,11 @@
   <extension
     point="xbmc.ui.screensaver"
     library_linux="screensaver.pyro.so"
+    library_windx="screensaver.pyro.dll"
     library_osx="screensaver.pyro.dylib"/>
   <extension point="xbmc.addon.metadata">
     <summary>Pyro screensaver</summary>
     <description>Pyro screensaver</description>
-    <platform>linux osx</platform>
+    <platform>linux osx windx</platform>
   </extension>
 </addon>
