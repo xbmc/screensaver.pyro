@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <addon
   id="screensaver.pyro"
-  version="1.0.0"
+  version="1.1.0"
   name="Pyro"
   provider-name="spiff">
   <requires>
@@ -9,12 +9,10 @@
   </requires>
   <extension
     point="xbmc.ui.screensaver"
-    library_linux="screensaver.pyro.so"
-    library_windx="screensaver.pyro.dll"
-    library_osx="screensaver.pyro.dylib"/>
+    library_@PLATFORM@="@LIBRARY_FILENAME@"/>
   <extension point="xbmc.addon.metadata">
     <summary>Pyro screensaver</summary>
     <description>Pyro screensaver</description>
-    <platform>linux osx windx</platform>
+    <platform>@PLATFORM@</platform>
   </extension>
 </addon>
