@@ -451,8 +451,4 @@ void ADDON_Announce(const char *flag, const char *sender, const char *message, c
 {
 }
 
-void GetInfo(SCR_INFO *info)
-{
-}
-
 };
