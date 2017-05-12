@@ -12,6 +12,8 @@ include_directories(${KODI_INCLUDE_DIR})
 
 set(PYRO_SOURCES src/Pyro.cpp)
 
+set(PYRO_HEADERS src/Pyro.h)
+
 set(DEPLIBS)
 
 build_addon(screensaver.pyro PYRO DEPLIBS)
