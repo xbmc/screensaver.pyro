@@ -137,7 +137,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   if (!props)
     return ADDON_STATUS_UNKNOWN;
 
-  SCR_PROPS* scrprops = (SCR_PROPS*)props;
+  AddonProps_Screensaver* scrprops = (AddonProps_Screensaver*)props;
 
   m_iWidth = scrprops->width;
   m_iHeight = scrprops->height;
@@ -407,17 +407,6 @@ void hsv_to_rgb (double hue, double saturation, double value,
           break;
         }
     }
-}
-
-// XBMC tells us to stop the screensaver
-// we should free any memory and release
-// any resources we have created.
-extern "C" void ADDON_Stop()
-{
-#ifdef WIN32
-  SAFE_RELEASE(g_pPShader);
-  SAFE_RELEASE(g_pVBuffer);
-#endif
 }
 
 void ADDON_Destroy()
