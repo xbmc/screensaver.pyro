@@ -23,14 +23,13 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "xbmc_scr_dll.h"
+#include <kodi/addon-instance/Screensaver.h>
+
 #ifdef WIN32
 #include <d3d11.h>
 #else
 #include <GL/gl.h>
 #endif
-
-extern "C" {
 
 #include "Pyro.h"
 #include <stdio.h>
@@ -128,39 +127,48 @@ void InitDXStuff(void)
 
 #endif // WIN32
 
+class CScreensaverPyro
+  : public kodi::addon::CAddonBase,
+    public kodi::addon::CInstanceScreensaver
+{
+public:
+  CScreensaverPyro();
+
+  virtual bool Start() override;
+  virtual void Stop() override;
+  virtual void Render() override;
+
+private:
+  int m_iWidth;
+  int m_iHeight;
+};
+
 ////////////////////////////////////////////////////////////////////////////
-// XBMC has loaded us into memory, we should set our core values
+// Kodi has loaded us into memory, we should set our core values
 // here and load any settings we may have from our config file
 //
-ADDON_STATUS ADDON_Create(void* hdl, void* props)
+CScreensaverPyro::CScreensaverPyro()
 {
-  if (!props)
-    return ADDON_STATUS_UNKNOWN;
-
-  SCR_PROPS* scrprops = (SCR_PROPS*)props;
-
-  m_iWidth = scrprops->width;
-  m_iHeight = scrprops->height;
+  m_iWidth = Width();
+  m_iHeight = Height();
 #ifdef WIN32
   g_pContext = reinterpret_cast<ID3D11DeviceContext*>(scrprops->device);
   InitDXStuff();
 #endif
-  return ADDON_STATUS_OK;
 }
 
-extern "C" void Start()
+bool CScreensaverPyro::Start()
 {
-	int i;
+  how_many = 1000;
+  frequency = 5;
+  scatter = 20;
 
-	how_many = 1000;
-	frequency = 5;
-	scatter = 20;
-
-	projectiles = 0;
-	free_projectiles = 0;
-	projectiles = (struct projectile *) calloc(how_many, sizeof (struct projectile));
-	for (i = 0; i < how_many; i++)
-		free_projectile (&projectiles [i]);
+  projectiles = 0;
+  free_projectiles = 0;
+  projectiles = (struct projectile *) calloc(how_many, sizeof (struct projectile));
+  for (int i = 0; i < how_many; i++)
+    free_projectile (&projectiles [i]);
+  return true;
 }
 
 static int myrand()
@@ -168,7 +176,7 @@ static int myrand()
   return (rand() << 15) + rand();
 }
 
-extern "C" void Render()
+void CScreensaverPyro::Render()
 {
 #ifdef WIN32
   g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -177,59 +185,62 @@ extern "C" void Render()
   g_pContext->PSSetShader(g_pPShader, NULL, 0);
 #endif
 
-	static int xlim, ylim, real_xlim, real_ylim;
-	int g = 100;
-	int i;
+  static int xlim, ylim, real_xlim, real_ylim;
+  int g = 100;
+  int i;
 
-	if ((myrand() % frequency) == 0)
-	{
-		real_xlim = m_iWidth;
-		real_ylim = m_iHeight;
-		xlim = real_xlim * 1000;
-		ylim = real_ylim * 1000;
-		launch (xlim, ylim, g);
-	}
+  if ((myrand() % frequency) == 0)
+  {
+    real_xlim = m_iWidth;
+    real_ylim = m_iHeight;
+    xlim = real_xlim * 1000;
+    ylim = real_ylim * 1000;
+    launch (xlim, ylim, g);
+  }
 
-	for (i = 0; i < how_many; i++)
-	{
-		struct projectile *p = &projectiles [i];
-		int old_x, old_y, old_size;
-		int size, x, y;
-		if (p->dead) continue;
-		old_x = p->x >> 10;
-		old_y = p->y >> 10;
-		old_size = p->size >> 10;
-		size = (p->size += p->decay) >> 10;
-		x = (p->x += p->dx) >> 10;
-		y = (p->y += p->dy) >> 10;
-		p->dy += (p->size >> 6);
-		if (p->primary) p->fuse--;
+  for (i = 0; i < how_many; i++)
+  {
+    struct projectile *p = &projectiles [i];
+    int old_x, old_y, old_size;
+    int size, x, y;
+    if (p->dead) continue;
+    old_x = p->x >> 10;
+    old_y = p->y >> 10;
+    old_size = p->size >> 10;
+    size = (p->size += p->decay) >> 10;
+    x = (p->x += p->dx) >> 10;
+    y = (p->y += p->dy) >> 10;
+    p->dy += (p->size >> 6);
+    if (p->primary) p->fuse--;
 
-		if ((p->primary ? (p->fuse > 0) : (p->size > 0)) &&
-		 x < real_xlim &&
-		 y < real_ylim &&
-		 x > 0 &&
-		 y > 0)
-		{
-			DrawRectangle(x, y, size, size, p->colour);
-		}
-		else
-		{
-			free_projectile (p);
-		}
+    if ((p->primary ? (p->fuse > 0) : (p->size > 0)) &&
+      x < real_xlim &&
+      y < real_ylim &&
+      x > 0 &&
+      y > 0)
+    {
+      DrawRectangle(x, y, size, size, p->colour);
+    }
+    else
+    {
+      free_projectile (p);
+    }
 
-		if (p->primary && p->fuse <= 0)
-		{
-			int j = (myrand() % scatter) + (scatter/2);
-			while (j-- > 0)	shrapnel(p);
-		}
-	}
+    if (p->primary && p->fuse <= 0)
+    {
+      int j = (myrand() % scatter) + (scatter/2);
+      while (j-- > 0)
+        shrapnel(p);
+    }
+  }
 }
 
-
-extern "C" void Stop()
+// Kodi tells us to stop the screensaver
+// we should free any memory and release
+// any resources we have created.
+void CScreensaverPyro::Stop()
 {
-	free(projectiles);
+  free(projectiles);
 #ifdef WIN32
   SAFE_RELEASE(g_pPShader);
   SAFE_RELEASE(g_pVBuffer);
@@ -409,29 +420,4 @@ void hsv_to_rgb (double hue, double saturation, double value,
     }
 }
 
-// XBMC tells us to stop the screensaver
-// we should free any memory and release
-// any resources we have created.
-extern "C" void ADDON_Stop()
-{
-#ifdef WIN32
-  SAFE_RELEASE(g_pPShader);
-  SAFE_RELEASE(g_pVBuffer);
-#endif
-}
-
-void ADDON_Destroy()
-{
-}
-
-ADDON_STATUS ADDON_GetStatus()
-{
-  return ADDON_STATUS_OK;
-}
-
-ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void *value)
-{
-  return ADDON_STATUS_OK;
-}
-
-};
+ADDONCREATOR(CScreensaverPyro);

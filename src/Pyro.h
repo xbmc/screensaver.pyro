@@ -35,6 +35,3 @@ void InitDXStuff(void);
 #endif
 void hsv_to_rgb(double hue, double saturation, double value, double *red, double *green, double *blue);
 void DrawRectangle(int x, int y, int w, int h, float* dwColour);
-
-int	m_iWidth;
-int m_iHeight;
