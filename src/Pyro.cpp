@@ -152,7 +152,7 @@ CScreensaverPyro::CScreensaverPyro()
   m_iWidth = Width();
   m_iHeight = Height();
 #ifdef WIN32
-  g_pContext = reinterpret_cast<ID3D11DeviceContext*>(scrprops->device);
+  g_pContext = reinterpret_cast<ID3D11DeviceContext*>(Device());
   InitDXStuff();
 #endif
 }
