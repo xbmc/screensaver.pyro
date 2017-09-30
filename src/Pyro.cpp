@@ -28,7 +28,11 @@
 #ifdef WIN32
 #include <d3d11.h>
 #else
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 #endif
 
 #include "Pyro.h"
