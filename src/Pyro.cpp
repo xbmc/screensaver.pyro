@@ -1,38 +1,34 @@
 /*
- * Pyro Screensaver for XBox Media Center
- * Copyright (c) 2004 Team XBMC
+ *      Copyright (C) 2004-2019 Team Kodi
+ *      http://kodi.tv
  *
- * Ver 1.0 15 Nov 2004	Chris Barnett (Forza)
+ *  Ver 1.0 15 Nov 2004	Chris Barnett (Forza)
  *
- * Adapted from the Pyro screen saver by
- *
+ *  Adapted from the Pyro screen saver by
  *  Jamie Zawinski <jwz@jwz.org>
+ * 
+ *  This Program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ *  This Program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ *  You should have received a copy of the GNU General Public License
+ *  along with this Program; see the file COPYING.  If not, see
+ *  <http://www.gnu.org/licenses/>.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-*/
+ */
 
 #include <kodi/addon-instance/Screensaver.h>
 
 #ifdef WIN32
 #include <d3d11.h>
 #else
-#ifdef __APPLE__
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
+#include <kodi/gui/gl/Shader.h>
 #endif
 
 #include "Pyro.h"
@@ -42,11 +38,7 @@
 
 #ifdef WIN32
 
-#define SAFE_RELEASE(_p)		{ if(_p) { _p->Release();	_p=NULL; } }
-
-ID3D11DeviceContext* g_pContext = nullptr;
-ID3D11Buffer*        g_pVBuffer = nullptr;
-ID3D11PixelShader*   g_pPShader = nullptr;
+#define SAFE_RELEASE(_p) { if(_p) { _p->Release(); _p=nullptr; } }
 
 const BYTE PixelShader[] =
 {
@@ -116,35 +108,63 @@ const BYTE PixelShader[] =
     171, 171
 };
 
-void InitDXStuff(void)
-{
-  ID3D11Device* pDevice = nullptr;
-  g_pContext->GetDevice(&pDevice);
-
-  CD3D11_BUFFER_DESC vbDesc(sizeof(MYCUSTOMVERTEX) * 5, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
-  pDevice->CreateBuffer(&vbDesc, nullptr, &g_pVBuffer);
-
-  pDevice->CreatePixelShader(PixelShader, sizeof(PixelShader), nullptr, &g_pPShader);
-
-  SAFE_RELEASE(pDevice);
-}
-
 #endif // WIN32
 
 class ATTRIBUTE_HIDDEN CScreensaverPyro
   : public kodi::addon::CAddonBase,
     public kodi::addon::CInstanceScreensaver
+#ifndef WIN32
+  , public kodi::gui::gl::CShaderProgram
+#endif
 {
 public:
   CScreensaverPyro();
 
-  virtual bool Start() override;
-  virtual void Stop() override;
-  virtual void Render() override;
+  // override functions for kodi::addon::CInstanceScreensaver
+  bool Start() override;
+  void Stop() override;
+  void Render() override;
+
+#ifndef WIN32
+  // override functions for kodi::gui::gl::CShaderProgram
+  void OnCompiledAndLinked() override;
+  bool OnEnabled() override { return true;  }
+#endif
 
 private:
+  void DrawRectangle(int x, int y, int w, int h, float* dwColour);
+
+  struct projectile *get_projectile(void);
+  void free_projectile(struct projectile *p);
+  void launch(int xlim, int ylim, int g);
+  struct projectile *shrapnel(struct projectile *parent);
+  void hsv_to_rgb(double hue, double saturation, double value, double *red, double *green, double *blue);
+
   int m_iWidth;
   int m_iHeight;
+
+  struct projectile *m_projectiles;
+  struct projectile *m_free_projectiles;
+
+  int m_how_many;
+  int m_frequency;
+  int m_scatter;
+
+  int m_xlim;
+  int m_ylim;
+  int m_real_xlim;
+  int m_real_ylim;
+
+#ifndef WIN32
+  GLuint m_vertexVBO = 0;
+  GLuint m_indexVBO = 0;
+  GLint m_aPosition = -1;
+  GLint m_aColor = -1;
+#else
+  ID3D11DeviceContext* m_pContext;
+  ID3D11Buffer*        m_pVBuffer;
+  ID3D11PixelShader*   m_pPShader;
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -152,26 +172,41 @@ private:
 // here and load any settings we may have from our config file
 //
 CScreensaverPyro::CScreensaverPyro()
+  : m_how_many(1000),
+    m_frequency(5),
+    m_scatter(20)
 {
   m_iWidth = Width();
   m_iHeight = Height();
-#ifdef WIN32
-  g_pContext = reinterpret_cast<ID3D11DeviceContext*>(Device());
-  InitDXStuff();
-#endif
+  m_real_xlim = m_iWidth;
+  m_real_ylim = m_iHeight;
 }
 
 bool CScreensaverPyro::Start()
 {
-  how_many = 1000;
-  frequency = 5;
-  scatter = 20;
+  m_free_projectiles = nullptr;
+  m_projectiles = static_cast<struct projectile*>(calloc(m_how_many, sizeof (struct projectile)));
+  for (int i = 0; i < m_how_many; i++)
+    free_projectile(&m_projectiles[i]);
 
-  projectiles = 0;
-  free_projectiles = 0;
-  projectiles = (struct projectile *) calloc(how_many, sizeof (struct projectile));
-  for (int i = 0; i < how_many; i++)
-    free_projectile (&projectiles [i]);
+#ifndef WIN32
+  std::string fraqShader = kodi::GetAddonPath("resources/shaders/" GL_TYPE_STRING "/frag.glsl");
+  std::string vertShader = kodi::GetAddonPath("resources/shaders/" GL_TYPE_STRING "/vert.glsl");
+  if (!LoadShaderFiles(vertShader, fraqShader) || !CompileAndLink())
+    return false;
+
+  glGenBuffers(1, &m_vertexVBO);
+  glGenBuffers(1, &m_indexVBO);
+#else
+  m_pContext = reinterpret_cast<ID3D11DeviceContext*>(Device());
+  ID3D11Device* pDevice = nullptr;
+  m_pContext->GetDevice(&pDevice);
+
+  CD3D11_BUFFER_DESC vbDesc(sizeof(MYCUSTOMVERTEX) * 5, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+  pDevice->CreateBuffer(&vbDesc, nullptr, &m_pVBuffer);
+  pDevice->CreatePixelShader(PixelShader, sizeof(PixelShader), nullptr, &m_pPShader);
+  SAFE_RELEASE(pDevice);
+#endif
   return true;
 }
 
@@ -183,31 +218,30 @@ static int myrand()
 void CScreensaverPyro::Render()
 {
 #ifdef WIN32
-  g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+  m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
   UINT strides = sizeof(MYCUSTOMVERTEX), offsets = 0;
-  g_pContext->IASetVertexBuffers(0, 1, &g_pVBuffer, &strides, &offsets);
-  g_pContext->PSSetShader(g_pPShader, NULL, 0);
+  m_pContext->IASetVertexBuffers(0, 1, &m_pVBuffer, &strides, &offsets);
+  m_pContext->PSSetShader(m_pPShader, nullptr, 0);
 #endif
 
-  static int xlim, ylim, real_xlim, real_ylim;
   int g = 100;
-  int i;
 
-  if ((myrand() % frequency) == 0)
+  if ((myrand() % m_frequency) == 0)
   {
-    real_xlim = m_iWidth;
-    real_ylim = m_iHeight;
-    xlim = real_xlim * 1000;
-    ylim = real_ylim * 1000;
-    launch (xlim, ylim, g);
+    m_real_xlim = m_iWidth;
+    m_real_ylim = m_iHeight;
+    m_xlim = m_real_xlim * 1000;
+    m_ylim = m_real_ylim * 1000;
+    launch(m_xlim, m_ylim, g);
   }
 
-  for (i = 0; i < how_many; i++)
+  for (int i = 0; i < m_how_many; i++)
   {
-    struct projectile *p = &projectiles [i];
+    struct projectile *p = &m_projectiles[i];
     int old_x, old_y, old_size;
     int size, x, y;
-    if (p->dead) continue;
+    if (p->dead)
+      continue;
     old_x = p->x >> 10;
     old_y = p->y >> 10;
     old_size = p->size >> 10;
@@ -215,13 +249,14 @@ void CScreensaverPyro::Render()
     x = (p->x += p->dx) >> 10;
     y = (p->y += p->dy) >> 10;
     p->dy += (p->size >> 6);
-    if (p->primary) p->fuse--;
+    if (p->primary)
+      p->fuse--;
 
     if ((p->primary ? (p->fuse > 0) : (p->size > 0)) &&
-      x < real_xlim &&
-      y < real_ylim &&
-      x > 0 &&
-      y > 0)
+        x < m_real_xlim &&
+        y < m_real_ylim &&
+        x > 0 &&
+        y > 0)
     {
       DrawRectangle(x, y, size, size, p->colour);
     }
@@ -232,7 +267,7 @@ void CScreensaverPyro::Render()
 
     if (p->primary && p->fuse <= 0)
     {
-      int j = (myrand() % scatter) + (scatter/2);
+      int j = (myrand() % m_scatter) + (m_scatter/2);
       while (j-- > 0)
         shrapnel(p);
     }
@@ -244,184 +279,220 @@ void CScreensaverPyro::Render()
 // any resources we have created.
 void CScreensaverPyro::Stop()
 {
-  free(projectiles);
-#ifdef WIN32
-  SAFE_RELEASE(g_pPShader);
-  SAFE_RELEASE(g_pVBuffer);
+  free(m_projectiles);
+#ifndef WIN32
+  glDeleteBuffers(1, &m_vertexVBO);
+  m_vertexVBO = 0;
+  glDeleteBuffers(1, &m_indexVBO);
+  m_indexVBO = 0;
+#else
+  SAFE_RELEASE(m_pPShader);
+  SAFE_RELEASE(m_pVBuffer);
 #endif
 }
 
-static struct projectile *get_projectile (void)
-{
-	struct projectile *p;
-
-	if (free_projectiles)
-	{
-		p = free_projectiles;
-		free_projectiles = p->next_free;
-		p->next_free = 0;
-		p->dead = false;
-		return p;
-	}
-	else
-		return 0;
-}
-
-static void free_projectile (struct projectile *p)
-{
-	p->next_free = free_projectiles;
-	free_projectiles = p;
-	p->dead = true;
-}
-
-static void launch (int xlim, int ylim, int g)
-{
-	struct projectile *p = get_projectile ();
-	int x, dx, xxx;
-	double red, green, blue;
-	if (! p) return;
-
-	do {
-		x = (myrand() % xlim);
-		dx = 30000 - (myrand() % 60000);
-		xxx = x + (dx * 200);
-	} while (xxx <= 0 || xxx >= xlim);
-
-	p->x = x;
-	p->y = ylim;
-	p->dx = dx;
-	p->size = 20000;
-	p->decay = 0;
-	p->dy = (myrand() % 10000) - 20000;
-	p->fuse = ((((myrand() % 500) + 500) * abs (p->dy / g)) / 1000);
-	p->primary = true;
-
-	hsv_to_rgb ((double)(myrand() % 360)/360.0, 1.0, 255.0,	&red, &green, &blue);
-	p->colour[0] = (float)red / 255.0f;
-	p->colour[1] = (float)green / 255.0f;
-	p->colour[2] = (float)blue / 255.0f;
-	p->colour[3] = 1.0;
-}
-
-static struct projectile *shrapnel(struct projectile *parent)
-{
-	struct projectile *p = get_projectile ();
-	if (! p) return 0;
-
-	p->x = parent->x;
-	p->y = parent->y;
-	p->dx = (myrand() % 5000) - 2500 + parent->dx;
-	p->dy = (myrand() % 5000) - 2500 + parent->dy;
-	p->decay = (myrand() % 50) - 60;
-	p->size = (parent->size * 2) / 3;
-	p->fuse = 0;
-	p->primary = false;
-	p->colour[0] = parent->colour[0];
-	p->colour[1] = parent->colour[1];
-	p->colour[2] = parent->colour[2];
-	p->colour[3] = parent->colour[3];
-	return p;
-}
-
-void DrawRectangle(int x, int y, int w, int h, float* dwColour)
+void CScreensaverPyro::DrawRectangle(int x, int y, int w, int h, float* dwColour)
 {
 #ifndef WIN32
-    //Store each point of the triangle together with it's colour
-    MYCUSTOMVERTEX cvVertices[] =
-    {
-      {(float)   x, (float) y+h, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
-      {(float)   x, (float)   y, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
-      {(float) x+w, (float)   y, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
-      {(float) x+w, (float) y+h, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]}
-    };
-    glBegin(GL_QUADS);
-    for (size_t j=0;j<4;++j)
-    {
-      glColor4f(cvVertices[j].r, cvVertices[j].g, cvVertices[j].b, 1.0);
-      glVertex2f(cvVertices[j].x, cvVertices[j].y);
-    }
-    glEnd();
+  EnableShader();
+
+  GLfloat x1 = -1.0 + 2.0*x/m_iWidth;
+  GLfloat y1 = -1.0 + 2.0*y/m_iHeight;
+  GLfloat x2 = -1.0 + 2.0*(x+w)/m_iWidth;
+  GLfloat y2 = -1.0 + 2.0*(y+h)/m_iHeight;
+
+  //Store each point of the triangle together with it's colour
+  MYCUSTOMVERTEX vertex[4] =
+  {
+    {x1, y1, 0.0, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
+    {x2, y1, 0.0, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
+    {x2, y2, 0.0, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
+    {x1, y2, 0.0, dwColour[0], dwColour[1], dwColour[2], dwColour[3]}
+  };
+
+  GLubyte idx[] = {0, 1, 2, 2, 3, 0};
+
+  glBindBuffer(GL_ARRAY_BUFFER, m_vertexVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(MYCUSTOMVERTEX)*4, &vertex[0], GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_indexVBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLubyte)*6, idx, GL_STATIC_DRAW);
+
+  glVertexAttribPointer(m_aPosition, 3, GL_FLOAT, 0, sizeof(MYCUSTOMVERTEX), BUFFER_OFFSET(offsetof(MYCUSTOMVERTEX, x)));
+  glVertexAttribPointer(m_aColor, 4, GL_FLOAT, 0, sizeof(MYCUSTOMVERTEX), BUFFER_OFFSET(offsetof(MYCUSTOMVERTEX, r)));
+
+  glEnableVertexAttribArray(m_aPosition);
+  glEnableVertexAttribArray(m_aColor);
+
+  glEnable(GL_BLEND);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, 0);
+
+  glDisableVertexAttribArray(m_aPosition);
+  glDisableVertexAttribArray(m_aColor);
+
+  DisableShader();
+
 #else
-    //Store each point of the triangle together with it's colour
-    MYCUSTOMVERTEX cvVertices[] =
-    {
-        {(float)   x, (float) y+h, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
-        {(float)   x, (float)   y, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
-        {(float) x+w, (float) y+h, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
-        {(float) x+w, (float)   y, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]}
-    };
-    D3D11_MAPPED_SUBRESOURCE res = {};
-    if (SUCCEEDED(g_pContext->Map(g_pVBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res)))
-    {
-      memcpy(res.pData, cvVertices, sizeof(cvVertices));
-      g_pContext->Unmap(g_pVBuffer, 0);
-    }
-    g_pContext->Draw(4, 0);
+  //Store each point of the triangle together with it's colour
+  MYCUSTOMVERTEX cvVertices[] =
+  {
+    {(float)   x, (float) y+h, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
+    {(float)   x, (float)   y, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
+    {(float) x+w, (float) y+h, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]},
+    {(float) x+w, (float)   y, 0.0f, dwColour[0], dwColour[1], dwColour[2], dwColour[3]}
+  };
+  D3D11_MAPPED_SUBRESOURCE res = {};
+  if (SUCCEEDED(m_pContext->Map(m_pVBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res)))
+  {
+    memcpy(res.pData, cvVertices, sizeof(cvVertices));
+    m_pContext->Unmap(m_pVBuffer, 0);
+  }
+  m_pContext->Draw(4, 0);
 #endif
 }
 
+struct projectile *CScreensaverPyro::get_projectile(void)
+{
+  if (m_free_projectiles)
+  {
+    struct projectile *p = m_free_projectiles;
+    m_free_projectiles = p->next_free;
+    p->next_free = 0;
+    p->dead = false;
+    return p;
+  }
 
-void hsv_to_rgb (double hue, double saturation, double value,
-		 double *red, double *green, double *blue)
+  return nullptr;
+}
+
+void CScreensaverPyro::free_projectile(struct projectile *p)
+{
+  p->next_free = m_free_projectiles;
+  m_free_projectiles = p;
+  p->dead = true;
+}
+
+void CScreensaverPyro::launch(int xlim, int ylim, int g)
+{
+  struct projectile *p = get_projectile();
+  int x, dx, xxx;
+  double red, green, blue;
+  if (!p)
+    return;
+
+  do {
+    x = (myrand() % xlim);
+    dx = 30000 - (myrand() % 60000);
+    xxx = x + (dx * 200);
+  } while (xxx <= 0 || xxx >= xlim);
+
+  p->x = x;
+  p->y = ylim;
+  p->dx = dx;
+  p->size = 20000;
+  p->decay = 0;
+  p->dy = (myrand() % 10000) - 20000;
+  p->fuse = ((((myrand() % 500) + 500) * abs (p->dy / g)) / 1000);
+  p->primary = true;
+
+  hsv_to_rgb ((double)(myrand() % 360)/360.0, 1.0, 255.0,	&red, &green, &blue);
+  p->colour[0] = (float)red / 255.0f;
+  p->colour[1] = (float)green / 255.0f;
+  p->colour[2] = (float)blue / 255.0f;
+  p->colour[3] = 1.0;
+}
+
+struct projectile* CScreensaverPyro::shrapnel(struct projectile *parent)
+{
+  struct projectile *p = get_projectile();
+  if (!p)
+    return nullptr;
+
+  p->x = parent->x;
+  p->y = parent->y;
+  p->dx = (myrand() % 5000) - 2500 + parent->dx;
+  p->dy = (myrand() % 5000) - 2500 + parent->dy;
+  p->decay = (myrand() % 50) - 60;
+  p->size = (parent->size * 2) / 3;
+  p->fuse = 0;
+  p->primary = false;
+  p->colour[0] = parent->colour[0];
+  p->colour[1] = parent->colour[1];
+  p->colour[2] = parent->colour[2];
+  p->colour[3] = parent->colour[3];
+
+  return p;
+}
+
+void CScreensaverPyro::hsv_to_rgb(double hue, double saturation, double value,
+                                  double *red, double *green, double *blue)
 {
   double f, p, q, t;
 
   if (saturation == 0.0)
-    {
-      *red   = value;
-      *green = value;
-      *blue  = value;
-    }
+  {
+    *red   = value;
+    *green = value;
+    *blue  = value;
+  }
   else
+  {
+    hue *= 6.0; // 0 -> 360 * 6
+
+    if (hue == 6.0)
+      hue = 0.0;
+
+    f = hue - (int) hue;
+    p = value * (1.0 - saturation);
+    q = value * (1.0 - saturation * f);
+    t = value * (1.0 - saturation * (1.0 - f));
+
+    switch ((int) hue)
     {
-      hue *= 6.0; // 0 -> 360 * 6
+    case 0:
+      *red = value;
+      *green = t;
+      *blue = p;
+      break;
 
-      if (hue == 6.0)
-        hue = 0.0;
+    case 1:
+      *red = q;
+      *green = value;
+      *blue = p;
+      break;
 
-      f = hue - (int) hue;
-      p = value * (1.0 - saturation);
-      q = value * (1.0 - saturation * f);
-      t = value * (1.0 - saturation * (1.0 - f));
+    case 2:
+      *red = p;
+      *green = value;
+      *blue = t;
+      break;
 
-      switch ((int) hue)
-        {
-        case 0:
-          *red = value;
-          *green = t;
-          *blue = p;
-          break;
+    case 3:
+      *red = p;
+      *green = q;
+      *blue = value;
+      break;
+    case 4:
+      *red = t;
+      *green = p;
+      *blue = value;
+      break;
 
-        case 1:
-          *red = q;
-          *green = value;
-          *blue = p;
-          break;
-
-        case 2:
-          *red = p;
-          *green = value;
-          *blue = t;
-          break;
-
-        case 3:
-          *red = p;
-          *green = q;
-          *blue = value;
-          break;
-        case 4:
-          *red = t;
-          *green = p;
-          *blue = value;
-          break;
-
-        case 5:
-          *red = value;
-          *green = p;
-          *blue = q;
-          break;
-        }
+    case 5:
+      *red = value;
+      *green = p;
+      *blue = q;
+      break;
     }
+  }
 }
+
+#ifndef WIN32
+void CScreensaverPyro::OnCompiledAndLinked()
+{
+  m_aPosition = glGetAttribLocation(ProgramHandle(), "a_position");
+  m_aColor = glGetAttribLocation(ProgramHandle(), "a_color");
+}
+#endif
 
 ADDONCREATOR(CScreensaverPyro);
