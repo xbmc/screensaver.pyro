@@ -1,16 +1,23 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <addon
   id="screensaver.pyro"
-  version="2.0.0"
+  version="3.0.0"
   name="Pyro"
-  provider-name="spiff">
+  provider-name="Team Kodi">
   <requires>@ADDON_DEPENDS@</requires>
   <extension
     point="xbmc.ui.screensaver"
     library_@PLATFORM@="@LIBRARY_FILENAME@"/>
   <extension point="xbmc.addon.metadata">
     <summary>Pyro screensaver</summary>
-    <description>Pyro screensaver</description>
+    <description>The pyro screensaver simulates fireworks</description>
     <platform>@PLATFORM@</platform>
+    <assets>
+      <icon>resources/icon.png</icon>
+      <fanart>resources/fanart.png</fanart>
+      <screenshot>resources/screenshot-01.png</screenshot>
+      <screenshot>resources/fanart.png</screenshot>
+      <screenshot>resources/screenshot-02.png</screenshot>
+    </assets>
   </extension>
 </addon>
