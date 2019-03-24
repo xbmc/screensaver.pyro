@@ -34,6 +34,7 @@
 #include "Pyro.h"
 #include <stdio.h>
 #include <math.h>
+#include <stddef.h>
 #include <stdlib.h>
 
 #ifdef WIN32
