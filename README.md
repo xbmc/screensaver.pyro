@@ -1,9 +1,9 @@
 # screensaver.pyro addon for Kodi
 
-This is a [Kodi](http://kodi.tv) screensaver addon.
+This is a [Kodi](https://kodi.tv) screensaver addon.
 
-[![Build Status](https://travis-ci.org/xbmc/screensaver.pyro.svg?branch=master)](https://travis-ci.org/xbmc/screensaver.pyro)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/xbmc/screensaver.pyro?svg=true)](https://ci.appveyor.com/project/xbmc/screensaver.pyro)
+[![Build Status](https://travis-ci.org/xbmc/screensaver.pyro.svg?branch=Matrix)](https://travis-ci.org/xbmc/screensaver.pyro/branches)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/xbmc/screensaver.pyro?branch=Matrix&svg=true)](https://ci.appveyor.com/project/xbmc/screensaver-pyro?branch=Matrix)
 
 ## Build instructions
 
