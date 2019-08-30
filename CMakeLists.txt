@@ -19,8 +19,7 @@ if(NOT WIN32)
   endif()
 endif()
 
-include_directories(${includes} ${KODI_INCLUDE_DIR}/..  # Hack way with "/..", need bigger Kodi cmake rework to match right include ways
-                                ${PROJECT_SOURCE_DIR}/lib)
+include_directories(${includes} ${KODI_INCLUDE_DIR}/..)  # Hack way with "/..", need bigger Kodi cmake rework to match right include ways
 
 set(PYRO_SOURCES src/Pyro.cpp)
 
