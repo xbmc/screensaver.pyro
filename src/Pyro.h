@@ -1,4 +1,10 @@
-// include file for screensaver template
+/*
+ *  Copyright (C) 2005-2020 Team Kodi (https://kodi.tv)
+ *  Copyright (C) 2004 Chris Barnett (Forza)
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSE.md for more information.
+ */
 
 struct projectile {
   int x, y;	/* position */
