@@ -9,8 +9,10 @@
     point="xbmc.ui.screensaver"
     library_@PLATFORM@="@LIBRARY_FILENAME@"/>
   <extension point="xbmc.addon.metadata">
+    <summary lang="de_DE">Pyro Bildschirmschoner</summary>
     <summary lang="en_GB">Pyro screensaver</summary>
-    <description lang="en_GB">The pyro screensaver simulates fireworks</description>
+    <description lang="de_DE">Der Pyro-Bildschirmschoner simuliert ein Feuerwerk.</description>
+    <description lang="en_GB">The pyro screensaver simulates fireworks.</description>
     <platform>@PLATFORM@</platform>
     <license>GPL-2.0-or-later</license>
     <source>https://github.com/xbmc/screensaver.pyro</source>
