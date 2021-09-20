@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2020 Team Kodi (https://kodi.tv)
+ *  Copyright (C) 2005-2021 Team Kodi (https://kodi.tv)
  *  Copyright (C) 2004 Chris Barnett (Forza)
  *  Adapted from the Pyro screen saver by
  *  Jamie Zawinski <jwz@jwz.org>
