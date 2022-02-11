@@ -22,12 +22,14 @@
     <summary lang="da_DK">Pyro pauseskærm</summary>
     <summary lang="de_DE">Pyro Bildschirmschoner</summary>
     <summary lang="en_GB">Pyro screensaver</summary>
+    <summary lang="hr_HR">Pyro čuvar zaslona</summary>
     <summary lang="ko_KR">파이로 화면 보호기</summary>
     <summary lang="pl_PL">Wygaszacz ekranu Pyro</summary>
     <summary lang="zh_CN">Pyro 屏幕保护程序</summary>
     <description lang="da_DK">Pyro-pauseskærmen simulerer fyrværkeri.</description>
     <description lang="de_DE">Der Pyro-Bildschirmschoner simuliert ein Feuerwerk.</description>
     <description lang="en_GB">The pyro screensaver simulates fireworks.</description>
+    <description lang="hr_HR">Pyro čuvar zaslona simulira vatromet.</description>
     <description lang="ko_KR">파이로 화면 보호기는 불꽃놀이를 시뮬레이션합니다.</description>
     <description lang="pl_PL">Wygaszacz ekranu Pyro symuluje fajerwerki.</description>
     <description lang="zh_CN">Pyro 屏幕保护程序模拟焰火。</description>
