@@ -25,6 +25,7 @@
     <summary lang="hr_HR">Pyro čuvar zaslona</summary>
     <summary lang="ko_KR">파이로 화면 보호기</summary>
     <summary lang="pl_PL">Wygaszacz ekranu Pyro</summary>
+    <summary lang="ru_RU">Заставка Pyro</summary>
     <summary lang="zh_CN">Pyro 屏幕保护程序</summary>
     <description lang="da_DK">Pyro-pauseskærmen simulerer fyrværkeri.</description>
     <description lang="de_DE">Der Pyro-Bildschirmschoner simuliert ein Feuerwerk.</description>
@@ -32,6 +33,7 @@
     <description lang="hr_HR">Pyro čuvar zaslona simulira vatromet.</description>
     <description lang="ko_KR">파이로 화면 보호기는 불꽃놀이를 시뮬레이션합니다.</description>
     <description lang="pl_PL">Wygaszacz ekranu Pyro symuluje fajerwerki.</description>
+    <description lang="ru_RU">Заставка Pyro эмитирует фейерверки.</description>
     <description lang="zh_CN">Pyro 屏幕保护程序模拟焰火。</description>
   </extension>
 </addon>
