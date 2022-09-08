@@ -26,6 +26,7 @@
     <summary lang="fi_FI">Pyro-näytönsäästäjä</summary>
     <summary lang="fr_FR">Pyro screensaver</summary>
     <summary lang="hr_HR">Pyro čuvar zaslona</summary>
+    <summary lang="it_IT">Salvaschermo pirotecnico</summary>
     <summary lang="ko_KR">파이로 화면 보호기</summary>
     <summary lang="pl_PL">Wygaszacz ekranu Pyro</summary>
     <summary lang="ru_RU">Заставка Pyro</summary>
@@ -38,6 +39,7 @@
     <description lang="fi_FI">Pyro-näytönsäästäjä simuloi ilotulitteita.</description>
     <description lang="fr_FR">L&apos;économiseur d&apos;écran pyro simule un feu d&apos;artifice.</description>
     <description lang="hr_HR">Pyro čuvar zaslona simulira vatromet.</description>
+    <description lang="it_IT">Questo salvaschermo simula i fuochi d&apos;artificio.</description>
     <description lang="ko_KR">파이로 화면 보호기는 불꽃놀이를 시뮬레이션합니다.</description>
     <description lang="pl_PL">Wygaszacz ekranu Pyro symuluje fajerwerki.</description>
     <description lang="ru_RU">Заставка Pyro эмитирует фейерверки.</description>
