@@ -142,6 +142,7 @@ private:
   int m_real_ylim;
 
 #ifndef WIN32
+  GLuint m_vao = 0;
   GLuint m_vertexVBO = 0;
   GLuint m_indexVBO = 0;
   GLint m_aPosition = -1;
@@ -180,6 +181,8 @@ bool CScreensaverPyro::Start()
   std::string vertShader = kodi::addon::GetAddonPath("resources/shaders/" GL_TYPE_STRING "/vert.glsl");
   if (!LoadShaderFiles(vertShader, fraqShader) || !CompileAndLink())
     return false;
+
+  glGenVertexArrays(1, &m_vao);
 
   glGenBuffers(1, &m_vertexVBO);
   glGenBuffers(1, &m_indexVBO);
@@ -271,6 +274,8 @@ void CScreensaverPyro::Stop()
   m_vertexVBO = 0;
   glDeleteBuffers(1, &m_indexVBO);
   m_indexVBO = 0;
+
+  glDeleteVertexArrays(1, &m_vao);
 #else
   SAFE_RELEASE(m_pPShader);
   SAFE_RELEASE(m_pVBuffer);
@@ -280,6 +285,8 @@ void CScreensaverPyro::Stop()
 void CScreensaverPyro::DrawRectangle(int x, int y, int w, int h, float* dwColour)
 {
 #ifndef WIN32
+  glBindVertexArray(m_vao);
+
   EnableShader();
 
   GLfloat x1 = -1.0 + 2.0*x/m_iWidth;
@@ -316,8 +323,11 @@ void CScreensaverPyro::DrawRectangle(int x, int y, int w, int h, float* dwColour
   glDisableVertexAttribArray(m_aPosition);
   glDisableVertexAttribArray(m_aColor);
 
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+
   DisableShader();
 
+  glBindVertexArray(0);
 #else
   //Store each point of the triangle together with it's colour
   MYCUSTOMVERTEX cvVertices[] =
