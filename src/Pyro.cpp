@@ -17,6 +17,9 @@
 #endif
 
 #include "Pyro.h"
+
+#include <vector>
+
 #include <stdio.h>
 #include <math.h>
 #include <stddef.h>
@@ -129,7 +132,7 @@ private:
   int m_iWidth;
   int m_iHeight;
 
-  struct projectile *m_projectiles;
+  std::vector<projectile> m_projectiles;
   struct projectile *m_free_projectiles;
 
   int m_how_many;
@@ -171,9 +174,10 @@ CScreensaverPyro::CScreensaverPyro()
 bool CScreensaverPyro::Start()
 {
   m_free_projectiles = nullptr;
-  m_projectiles = static_cast<struct projectile*>(calloc(m_how_many, sizeof (struct projectile)));
-  for (int i = 0; i < m_how_many; i++)
-    free_projectile(&m_projectiles[i]);
+  m_projectiles.resize(m_how_many);
+
+  for (auto& projectile : m_projectiles)
+    free_projectile(&projectile);
 
 #ifndef WIN32
   std::string fraqShader = kodi::addon::GetAddonPath("resources/shaders/" GL_TYPE_STRING "/frag.glsl");
@@ -265,7 +269,6 @@ void CScreensaverPyro::Render()
 // any resources we have created.
 void CScreensaverPyro::Stop()
 {
-  free(m_projectiles);
 #ifndef WIN32
   glDeleteBuffers(1, &m_vertexVBO);
   m_vertexVBO = 0;
