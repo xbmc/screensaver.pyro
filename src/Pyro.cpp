@@ -214,6 +214,9 @@ void CScreensaverPyro::Render()
   UINT strides = sizeof(MYCUSTOMVERTEX), offsets = 0;
   m_pContext->IASetVertexBuffers(0, 1, &m_pVBuffer, &strides, &offsets);
   m_pContext->PSSetShader(m_pPShader, nullptr, 0);
+#else
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
 #endif
 
   int g = 100;
