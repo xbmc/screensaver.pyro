@@ -204,6 +204,12 @@ static int myrand()
 void CScreensaverPyro::Render()
 {
 #ifdef WIN32
+  ID3D11RenderTargetView* renderTargetView;
+  m_pContext->OMGetRenderTargets(1, &renderTargetView, nullptr);
+  float clearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+  m_pContext->ClearRenderTargetView(renderTargetView, clearColor);
+  SAFE_RELEASE(renderTargetView);
+
   m_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
   UINT strides = sizeof(MYCUSTOMVERTEX), offsets = 0;
   m_pContext->IASetVertexBuffers(0, 1, &m_pVBuffer, &strides, &offsets);
